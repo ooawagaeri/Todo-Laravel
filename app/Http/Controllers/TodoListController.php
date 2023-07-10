@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Responses\ErrorResponse;
 use App\Models\TodoList;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -29,10 +30,14 @@ class TodoListController extends Controller
      */
     public function store(Request $request)
     {
-        $newList = new TodoList;
-        $newList->name = $request->list['name'];
-        $newList->save();
-        return $newList;    
+        try {
+            $newList = new TodoList;
+            $newList->name = $request->name;
+            $newList->save();
+            return $newList;   
+        } catch(\Exception $e) {     
+            return ErrorResponse::getMaliciousResponse();
+        }
     }
 
     /**
@@ -40,7 +45,11 @@ class TodoListController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $existingList = TodoList::find($id);
+        if($existingList) {
+            return $existingList;
+        }
+        return ErrorResponse::getNotFoundResponse();
     }
 
     /**
@@ -59,11 +68,11 @@ class TodoListController extends Controller
         $existingList = TodoList::find($id);
         if($existingList) {
             $existingList->name = $request->item['name'] ?? $existingList->name;
-            $existingList->updated_at = Carbon::now() ;
+            $existingList->updated_at = Carbon::now();
             $existingList->save();
             return $existingList;
         }
-        return "List not found!";
+        return ErrorResponse::getNotFoundResponse();
     }
 
     /**
@@ -76,6 +85,6 @@ class TodoListController extends Controller
            $existingList->delete();
            return "List deleted";
         }
-        return "List not found!";    
+        return ErrorResponse::getNotFoundResponse();
     }
 }

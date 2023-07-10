@@ -20,7 +20,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::prefix('/todo-lists')->group(function(){
+Route::prefix('/todo-lists')->group(function() {
     Route::get('', [TodoListController::class, 'index']);
     Route::post('',[TodoListController::class, 'store']);
     Route::get('/{id}', [TodoListController::class, 'show']);
@@ -29,7 +29,7 @@ Route::prefix('/todo-lists')->group(function(){
 });
 
 
-Route::prefix('/todos')->group(function(){
+Route::prefix('/todos')->group(function() {
     Route::get('', [ItemController::class, 'index']);
     Route::post('',[ItemController::class, 'store']);
     Route::get('/{id}', [ItemController::class, 'show']);

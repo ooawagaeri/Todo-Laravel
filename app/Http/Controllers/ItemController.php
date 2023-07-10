@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Responses\ErrorResponse;
 use App\Models\Item;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -29,11 +30,15 @@ class ItemController extends Controller
      */
     public function store(Request $request)
     {
-        $newItem = new Item;
-        $newItem->description = $request->item['description'];
-        $newItem->todo_list_id = $request->item['todo_list_id'];
-        $newItem->save();
-        return $newItem;    
+        try {
+            $newItem = new Item;
+            $newItem->description = $request->item['description'];
+            $newItem->todo_list_id = $request->item['todo_list_id'];
+            $newItem->save();
+            return $newItem;
+        } catch(\Exception $e) {
+            return ErrorResponse::getNotFoundResponse();
+        }
     }
 
     /**
@@ -41,7 +46,11 @@ class ItemController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $existingItem = Item::find($id);
+        if($existingItem) {
+            return $existingItem;
+        }
+        return ErrorResponse::getNotFoundResponse();
     }
 
     /**
@@ -65,7 +74,7 @@ class ItemController extends Controller
             $existingItem->save();
             return $existingItem;
         }
-        return "Item not found!";
+        return ErrorResponse::getNotFoundResponse();
     }
 
     /**
@@ -78,6 +87,6 @@ class ItemController extends Controller
            $existingItem->delete();
            return "Item deleted";
         }
-        return "Item not found!";    
+        return ErrorResponse::getNotFoundResponse();
     }
 }
