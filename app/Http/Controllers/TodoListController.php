@@ -97,7 +97,7 @@ class TodoListController extends Controller
     /**
      * Merge todo items from database into given list.
      */
-    private static function mergeItems(TodoList $list) 
+    public static function mergeItems(TodoList $list) 
     {
         $items = ItemController::whereListId($list->id);
         $list->todos = $items;

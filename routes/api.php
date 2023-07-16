@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\SyncController;
 use App\Http\Controllers\TodoListController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -35,4 +36,8 @@ Route::prefix('/todos')->group(function() {
     Route::get('/{id}', [ItemController::class, 'show']);
     Route::put('/{id}' , [ItemController::class, 'update']);
     Route::delete('/{id}', [ItemController::class, 'destroy'] );
+});
+
+Route::prefix('/sync')->group(function() {
+    Route::put('',[SyncController::class, 'update']);
 });
