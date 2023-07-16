@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 
 class SyncController extends Controller
 {
+    /**
+     * Finds intersection between two object lists with Id.
+     */
     function findIntersect($list1, $list2) {
         return array_uintersect($list1, $list2, function ($obj1, $obj2) {
             if ($obj1['id'] === $obj2['id']) {
@@ -20,6 +23,11 @@ class SyncController extends Controller
                 return 1;
             }});
     }
+
+    /**
+     * Finds differences between 1st list difference against 2nd list with Id.
+     * Order of parameters matters.
+     */
     function findDifference($list1, $list2) {
         return array_udiff($list1, $list2, function ($obj1, $obj2) {
             if ($obj1['id'] === $obj2['id']) {
@@ -30,24 +38,42 @@ class SyncController extends Controller
                 return 1;
             }});
     }
+
     /**
-     * Updates all resources in storage.
+     * Handles deletion of old lists
      */
-    public function update(Request $request)
-    {
-
-        $offlineLists = $request->data;
-        $allLists = TodoList::orderBy('created_at', 'desc')->get()->toArray();
-
-        $deletingLists = $this->findDifference($allLists, $offlineLists);
-        $existingLists = $this->findIntersect($offlineLists, $allLists);
-        $addingLists = $this->findDifference($offlineLists, $allLists);
-
+    function handleDeleteLists($deletingLists) {
         foreach ($deletingLists as $list) {
             $existingList = TodoList::find($list['id']);
             $existingList->delete();
         }
+    }
 
+    /**
+     * Handles addition of new lists
+     */
+    function handleAddingLists($addingLists) {
+        foreach ($addingLists as $list) {
+            $newList = new TodoList;
+            $newList->name = $list['name'];
+            $newList->save();
+
+            // Since new list, all todos are also new
+            foreach ($list['todos'] as $todo) {
+                $newItem = new Item;
+                $newItem->description = $todo['description'];
+                $newItem->todo_list_id = $newList->id;
+                $newItem->is_done = $todo['is_done'];
+                $newItem->save();
+            }
+        }
+    }
+
+
+    /**
+     * Handles editing of existing lists
+     */
+    function handleExistingLists($existingLists) {
         foreach ($existingLists as $list) {
             $existingList = TodoList::find($list['id']);
             $existingList->name = $list['name'] ?? $existingList->name;
@@ -61,11 +87,12 @@ class SyncController extends Controller
             $existingItems = $this->findIntersect($offlineItems, $allItems);
             $addingItems = $this->findDifference($offlineItems, $allItems);
 
-
+            // Deletes old items
             foreach ($deletingItems as $item) {
                 $existingItem = Item::find($item['id']);
                 $existingItem->delete();
             }
+            // Edits/Overrides existing items
             foreach ($existingItems as $item) {
                 $existingItem = Item::find($item['id']);
                 $existingItem->description = $item['description'] ?? $existingItem->description;
@@ -73,6 +100,7 @@ class SyncController extends Controller
                 $existingItem->updated_at = Carbon::now() ;
                 $existingItem->save();
             }
+            // Adds new items
             foreach ($addingItems as $item) {
                 $newItem = new Item;
                 $newItem->description = $item['description'];
@@ -82,20 +110,24 @@ class SyncController extends Controller
             }
     
         }
-        
-        foreach ($addingLists as $list) {
-            $newList = new TodoList;
-            $newList->name = $list['name'];
-            $newList->save();
+    }
 
-            foreach ($list['todos'] as $todo) {
-                $newItem = new Item;
-                $newItem->description = $todo['description'];
-                $newItem->todo_list_id = $newList->id;
-                $newItem->is_done = $todo['is_done'];
-                $newItem->save();
-            }
-        }
+    /**
+     * Updates all resources in storage.
+     */
+    public function update(Request $request)
+    {
+
+        $offlineLists = $request->data;
+        $allLists = TodoList::orderBy('created_at', 'desc')->get()->toArray();
+
+        $deletingLists = $this->findDifference($allLists, $offlineLists);
+        $existingLists = $this->findIntersect($offlineLists, $allLists);
+        $addingLists = $this->findDifference($offlineLists, $allLists);
+
+        $this->handleDeleteLists($deletingLists);
+        $this->handleExistingLists($existingLists);
+        $this->handleAddingLists($addingLists);
 
         // Return new lists
         $newLists = TodoList::orderBy('created_at', 'desc')->get();
